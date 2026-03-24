@@ -6,17 +6,16 @@ KratosDB is a storage engine built from scratch in Go, following *Database Inter
 
 ## Current State
 
-The project is in its earliest stage. The in-memory component of the LSM-tree write path is being built first.
+Milestone 1 is underway. The `MemTable` compiles, passes all unit tests, and lives in the correct project layout under `internal/memtable`.
 
 **Implemented:**
-- `MemTable` — an in-memory key/value store with soft-delete (tombstone) semantics via an `entry` struct
+- `MemTable` — in-memory key/value store with `Put`, `Get`, and soft-delete (`Delete`) via tombstone semantics
+- Table-driven unit tests covering: basic put/get, missing keys, overwrites, delete, delete of non-existent key, and put-after-delete
 
 **Known gaps (in progress):**
-- `NewMemTable` uses an undeclared variable (`dict`) — does not compile yet
-- `Delete` assigns directly to a map field — does not compile yet
-- No concurrency protection (`sync.RWMutex`)
-- Underlying map is unordered — needs to be replaced with a sorted structure (e.g. a skip list or red-black tree) for efficient SSTable flushing
-- No tests yet
+- No concurrency protection (`sync.RWMutex`) — not safe for concurrent goroutine access yet
+- Underlying `map` is unordered — needs to be replaced with a sorted structure (e.g. skip list) for efficient SSTable flushing
+- No flush threshold or immutable MemTable handoff yet
 
 **Project layout (target):**
 ```
@@ -43,11 +42,12 @@ Progress is tracked chapter by chapter through *Database Internals*.
 #### Milestone 1 — MemTable (Chapter 3: File Formats / Chapter 6: LSM Trees)
 The write buffer that absorbs all incoming writes before they are flushed to disk.
 
-- [ ] Fix `NewMemTable` and `Delete` compile errors
+- [x] `Put`, `Get`, `Delete` with tombstone semantics
+- [x] Correct project layout (`internal/memtable`)
+- [x] Table-driven unit tests — all passing
 - [ ] Add `sync.RWMutex` for concurrent access
 - [ ] Replace `map` with a sorted in-memory structure (skip list)
 - [ ] Define a size threshold that triggers a flush
-- [ ] Write table-driven unit tests
 
 #### Milestone 2 — Write-Ahead Log / WAL (Chapter 3: File Formats)
 Durability guarantee — every write is appended to the WAL before being applied to the MemTable, so writes survive crashes.
