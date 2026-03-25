@@ -6,17 +6,14 @@ KratosDB is a storage engine built from scratch in Go, following *Database Inter
 
 ## Current State
 
-Milestone 1 is underway. The `memtable` package has core functionality complete; sorted key ordering is implemented via an external sorted map.
+Currently reading Chapter 4. The MemTable is implemented ahead of its chapter (Chapter 7) as a project scaffold — it will be fully contextualised when Chapter 7 is reached.
 
 **Implemented:**
 - `memtable.Table` — in-memory key/value store with `Put`, `Get`, and soft-delete (`Delete`) via tombstone semantics
-- Key-ordered storage via `github.com/egregors/sortedmap` — keys are maintained in lexicographic order, ready for SSTable flushing
+- Key-ordered storage via `github.com/egregors/sortedmap` — keys maintained in lexicographic order
 - `sync.RWMutex` concurrency protection — safe for concurrent goroutine access
 - Table-driven unit tests covering: basic put/get, missing keys, overwrites, delete, delete of non-existent key, put-after-delete, and concurrent access
 - All tests pass under `go test -race`
-
-**Known gaps (in progress):**
-- No flush threshold or immutable MemTable handoff yet
 
 **Project layout (target):**
 ```
@@ -40,64 +37,67 @@ Progress is tracked chapter by chapter through *Database Internals*.
 
 ### Part I — Storage Engines
 
-#### Milestone 1 — MemTable (Chapter 3: File Formats / Chapter 6: LSM Trees)
-The write buffer that absorbs all incoming writes before they are flushed to disk.
+#### Milestone 1 — MemTable 
+The in-memory write buffer. Implemented early to have something to build on — the book formally introduces this in Chapter 7.
 
 - [x] `Put`, `Get`, `Delete` with tombstone semantics
 - [x] Correct project layout (`internal/memtable`)
 - [x] Table-driven unit tests — all passing under `go test -race`
 - [x] `sync.RWMutex` for concurrent access
-- [x] Replace `map` with a sorted in-memory structure (`egregors/sortedmap`, key-ordered)
-- [ ] Define a size threshold that triggers a flush
+- [x] Key-ordered storage (`egregors/sortedmap`)
 
-#### Milestone 2 — Write-Ahead Log / WAL (Chapter 3: File Formats)
+#### Milestone 2 — File Format Primitives (Chapter 3: File Formats)
+Binary encoding of records on disk. Foundation for everything that writes to or reads from disk (SSTable, WAL).
+
+- [ ] Fixed-size record encoding/decoding
+- [ ] Variable-size record encoding with length prefixes
+- [ ] Key-value cell serialisation
+
+#### Milestone 3 — Write-Ahead Log / WAL (Chapter 5: Transaction Processing and Recovery)
 Durability guarantee — every write is appended to the WAL before being applied to the MemTable, so writes survive crashes.
 
-- [ ] Binary log format with fixed-size record framing
+- [ ] Binary log format using Chapter 3 record framing
 - [ ] Sequential append-only writes
 - [ ] WAL replay on startup to recover an unflushed MemTable
 - [ ] Log segment rotation
 
-#### Milestone 3 — SSTable (Chapter 3: File Formats, Chapter 6: LSM Trees)
+#### Milestone 4 — SSTable (Chapter 7: Log-Structured Storage)
 The on-disk, immutable, sorted representation of a flushed MemTable.
 
-- [ ] Sort and serialise a MemTable to disk on flush
+- [ ] Serialise a MemTable to disk using Chapter 3 file format primitives
 - [ ] SSTable file format: data blocks + index block + footer
 - [ ] Point lookup via binary search on the index
 - [ ] Iterator for sequential scans
 - [ ] Handle tombstones during reads
 
-#### Milestone 4 — Bloom Filters (Chapter 7: Log-Structured Storage)
-Probabilistic filter attached to each SSTable to short-circuit disk reads for keys that do not exist.
+#### Milestone 5 — Full LSM-Tree (Chapter 7: Log-Structured Storage)
+Wire up the complete LSM-tree: flush threshold, immutable MemTable handoff, and the full read path.
+
+- [ ] Size threshold that triggers a flush
+- [ ] Immutable MemTable promotion and background flush
+- [ ] Multi-level read path: MemTable → immutable MemTables → SSTables
+- [ ] Tombstone propagation across levels
+- [ ] Merge iterator across levels
+
+#### Milestone 6 — Bloom Filters (Chapter 7: Log-Structured Storage)
+Probabilistic filter per SSTable to short-circuit disk reads for absent keys.
 
 - [ ] Implement a basic bloom filter
 - [ ] Attach a per-SSTable bloom filter at flush time
 - [ ] Skip SSTable reads for keys that fail the filter
 
-#### Milestone 5 — LSM-Tree Read Path (Chapter 6 & 7)
-Assemble the full read path: MemTable → immutable MemTables → SSTable levels.
+#### Milestone 7 — Compaction (Chapter 7: Log-Structured Storage)
+Background process that merges SSTables to bound read amplification and reclaim space from tombstones.
 
-- [ ] Multi-level read path with correct recency ordering
-- [ ] Tombstone propagation across levels
-- [ ] Iterator merge across levels (merge iterator)
-
-#### Milestone 6 — Compaction (Chapter 7: Log-Structured Storage)
-Background process that merges and garbage-collects SSTables to bound read amplification and space amplification.
-
-- [ ] Size-tiered compaction strategy (initial)
+- [ ] Size-tiered compaction strategy
 - [ ] Leveled compaction strategy (RocksDB-style)
 - [ ] Tombstone resolution and key deduplication during compaction
 - [ ] Compaction scheduling and concurrency
 
-#### Milestone 7 — Block Cache & Read Optimisations (Chapter 5: Transactions and Recovery)
-- [ ] LRU block cache for hot SSTable blocks
-- [ ] Key prefix compression within data blocks
-- [ ] Configurable block size
-
-#### Milestone 8 — Recovery & Crash Consistency (Chapter 5)
+#### Milestone 8 — Recovery & Crash Consistency (Chapter 5: Transaction Processing and Recovery)
 - [ ] Full WAL-based crash recovery
 - [ ] Manifest file tracking live SSTable versions
-- [ ] Atomic version transitions (MVCC groundwork)
+- [ ] Atomic version transitions
 
 ---
 
