@@ -1,10 +1,14 @@
 package memtable
 
-import "sync"
+import (
+	"sync"
+
+	sm "github.com/egregors/sortedmap"
+)
 
 type Table struct {
 	mutex sync.RWMutex
-	table map[string]entry
+	table *sm.SortedMap[map[string]entry, string, entry]
 }
 
 type entry struct {
@@ -13,19 +17,23 @@ type entry struct {
 }
 
 func New() *Table {
-	return &Table{table: make(map[string]entry)}
+	sortedMap := sm.NewFromMap(make(map[string]entry),
+		func(i, j sm.KV[string, entry]) bool {
+			return i.Key < j.Key
+		})
+	return &Table{table: sortedMap}
 }
 
 func (m *Table) Put(key string, value string) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	m.table[key] = entry{value: value, deleted: false}
+	m.table.Insert(key, entry{value: value, deleted: false})
 }
 
 func (m *Table) Get(key string) (string, bool) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	e, exists := m.table[key]
+	e, exists := m.table.Get(key)
 	if exists && !e.deleted {
 		return e.value, exists
 	}
@@ -36,9 +44,9 @@ func (m *Table) Get(key string) (string, bool) {
 func (m *Table) Delete(key string) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	e, exists := m.table[key]
+	e, exists := m.table.Get(key)
 	if exists {
 		e.deleted = true
-		m.table[key] = e
+		m.table.Insert(key, e)
 	}
 }

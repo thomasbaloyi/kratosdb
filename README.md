@@ -6,16 +6,16 @@ KratosDB is a storage engine built from scratch in Go, following *Database Inter
 
 ## Current State
 
-Milestone 1 is underway. The `memtable` package is complete and concurrent-safe.
+Milestone 1 is underway. The `memtable` package has core functionality complete; sorted key ordering is implemented via an external sorted map.
 
 **Implemented:**
 - `memtable.Table` — in-memory key/value store with `Put`, `Get`, and soft-delete (`Delete`) via tombstone semantics
+- Key-ordered storage via `github.com/egregors/sortedmap` — keys are maintained in lexicographic order, ready for SSTable flushing
 - `sync.RWMutex` concurrency protection — safe for concurrent goroutine access
 - Table-driven unit tests covering: basic put/get, missing keys, overwrites, delete, delete of non-existent key, put-after-delete, and concurrent access
 - All tests pass under `go test -race`
 
 **Known gaps (in progress):**
-- Underlying `map` is unordered — needs to be replaced with a sorted structure (e.g. skip list) for efficient SSTable flushing
 - No flush threshold or immutable MemTable handoff yet
 
 **Project layout (target):**
@@ -47,7 +47,7 @@ The write buffer that absorbs all incoming writes before they are flushed to dis
 - [x] Correct project layout (`internal/memtable`)
 - [x] Table-driven unit tests — all passing under `go test -race`
 - [x] `sync.RWMutex` for concurrent access
-- [ ] Replace `map` with a sorted in-memory structure (skip list)
+- [x] Replace `map` with a sorted in-memory structure (`egregors/sortedmap`, key-ordered)
 - [ ] Define a size threshold that triggers a flush
 
 #### Milestone 2 — Write-Ahead Log / WAL (Chapter 3: File Formats)

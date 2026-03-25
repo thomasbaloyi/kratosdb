@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(go test:*)"
+      "Bash(go test:*)",
+      "Bash(go version:*)",
+      "Read(//usr/local/go/bin/**)",
+      "Bash(/usr/local/go/bin/go version:*)",
+      "Read(//home/thomas/go/bin/**)",
+      "Read(//home/thomas/**)",
+      "Bash(/home/thomas/.local/bin/go version:*)",
+      "Bash(ls ~/.local/bin/go* ~/go/)"
     ]
   }
 }
