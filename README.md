@@ -6,14 +6,15 @@ KratosDB is a storage engine built from scratch in Go, following *Database Inter
 
 ## Current State
 
-Milestone 1 is underway. The `MemTable` compiles, passes all unit tests, and lives in the correct project layout under `internal/memtable`.
+Milestone 1 is underway. The `memtable` package is complete and concurrent-safe.
 
 **Implemented:**
-- `MemTable` — in-memory key/value store with `Put`, `Get`, and soft-delete (`Delete`) via tombstone semantics
-- Table-driven unit tests covering: basic put/get, missing keys, overwrites, delete, delete of non-existent key, and put-after-delete
+- `memtable.Table` — in-memory key/value store with `Put`, `Get`, and soft-delete (`Delete`) via tombstone semantics
+- `sync.RWMutex` concurrency protection — safe for concurrent goroutine access
+- Table-driven unit tests covering: basic put/get, missing keys, overwrites, delete, delete of non-existent key, put-after-delete, and concurrent access
+- All tests pass under `go test -race`
 
 **Known gaps (in progress):**
-- No concurrency protection (`sync.RWMutex`) — not safe for concurrent goroutine access yet
 - Underlying `map` is unordered — needs to be replaced with a sorted structure (e.g. skip list) for efficient SSTable flushing
 - No flush threshold or immutable MemTable handoff yet
 
@@ -44,8 +45,8 @@ The write buffer that absorbs all incoming writes before they are flushed to dis
 
 - [x] `Put`, `Get`, `Delete` with tombstone semantics
 - [x] Correct project layout (`internal/memtable`)
-- [x] Table-driven unit tests — all passing
-- [ ] Add `sync.RWMutex` for concurrent access
+- [x] Table-driven unit tests — all passing under `go test -race`
+- [x] `sync.RWMutex` for concurrent access
 - [ ] Replace `map` with a sorted in-memory structure (skip list)
 - [ ] Define a size threshold that triggers a flush
 

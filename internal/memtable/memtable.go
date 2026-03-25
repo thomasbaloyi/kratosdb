@@ -1,36 +1,44 @@
 package memtable
 
-type MemTable struct {
-	table map[string]entry // TODO: Add concurrency protection + use a sorted map
+import "sync"
+
+type Table struct {
+	mutex sync.RWMutex
+	table map[string]entry
 }
 
 type entry struct {
-	value 	string
+	value   string
 	deleted bool
 }
 
-func NewMemTable() *MemTable {
-	dict := make(map[string]entry)
-	return &MemTable{table: dict}
+func New() *Table {
+	return &Table{table: make(map[string]entry)}
 }
 
-func (m *MemTable) Put(key string, value string) {
+func (m *Table) Put(key string, value string) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	m.table[key] = entry{value: value, deleted: false}
 }
 
-func (m *MemTable) Get(key string) (string, bool) {
-	entry, exists := m.table[key]
-	if exists && !entry.deleted {
-		return entry.value, exists
+func (m *Table) Get(key string) (string, bool) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	e, exists := m.table[key]
+	if exists && !e.deleted {
+		return e.value, exists
 	}
-	 
+
 	return "", false
 }
 
-func (m *MemTable) Delete(key string) {
-	entry, exists := m.table[key] 
+func (m *Table) Delete(key string) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	e, exists := m.table[key]
 	if exists {
-		entry.deleted = true
-		m.table[key] = entry
+		e.deleted = true
+		m.table[key] = e
 	}
 }
